@@ -15,11 +15,11 @@ from fastai.text import *
 from fastai.callbacks import *
 from fastai.metrics import *
 
-class BertTokenModel(BaseTokenizer):
+class BertMaskedLM(BaseTokenizer):
 
-    def __init__(self, model_name:str='bert-large-uncased'):
+    def __init__(self, model_name:str='bert-base-uncased', do_lower_case: bool=True):
         # Load pre-trained model tokenizer (vocabulary)
-        self.tokenizer = BertTokenizer.from_pretrained(model_name)
+        self.tokenizer = BertTokenizer.from_pretrained(model_name, do_lower_case=do_lower_case)
         # Load pre-trained model (weights)
         self.model = BertForMaskedLM.from_pretrained(model_name)
         self.model.eval()
@@ -53,4 +53,3 @@ class BertTokenModel(BaseTokenizer):
             sentence = sentence.replace("[MASK]", token)
             preds.append(sentence)
         return preds
-

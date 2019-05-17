@@ -5,37 +5,43 @@ from fastai.callbacks import *
 from fastai.metrics import *
 from pytorch_pretrained_bert import BertTokenizer
 from sklearn.metrics import *
+from pytorch_pretrained_bert.optimization import BertAdam, WarmupLinearSchedule
+
+"""
+Code adapted from: https://github.com/keitakurita/Practical_NLP_in_PyTorch/blob/master/fastai/bert_with_fastai.ipynb
+Thanks to Keita Kurita for this excellent work. You can read more on: http://mlexplained.com/2019/05/13/a-tutorial-to-fine-tuning-bert-with-fast-ai/ 
+"""
 
 """FastAI has its own conventions for handling tokenization, so we'll need to wrap the tokenizer within a different class. 
 Notice we add the [CLS] and [SEP] special tokens to the start and end of the sequence here.
 """
 
-class FastAIBertTokenizer(BaseTokenizer):
-    """Wrapper around BertTokenizer to be compatible with fast.ai"""
-    def __init__(self, model_name: str, max_seq_len: int=128, **kwargs):
-        self.max_seq_len = max_seq_len
-        self.model_name = model_name
-        self.bert_tok = BertTokenizer.from_pretrained(self.model_name)
-        self._pretrained_tokenizer = self.bert_tok
-
-
-    def __call__(self, *args, **kwargs):
-        return self
-
-    def tokenizer(self, t:str) -> List[str]:
-        """Limits the maximum sequence length"""
-        return ["[CLS]"] + self._pretrained_tokenizer.tokenize(t)[:self.max_seq_len - 2] + ["[SEP]"]
+class FastAITokenizer():
+    def __init__(self, model_name: str, max_seq_len: int=128, do_lower_case: bool=True, **kwargs):
+        self.bert_tok = BertTokenizer.from_pretrained(model_name, do_lower_case=do_lower_case)
+        self.max_seq_len=max_seq_len
 
     def bert_tokenizer(self, pre_rules=[], post_rules=[]):
-        return Tokenizer(tok_func=self)
+        return Tokenizer(tok_func=FastAIBertTokenizer(self.bert_tok, max_seq_len=self.max_seq_len), pre_rules=[], post_rules=[])
 
     def fastai_bert_vocab(self):
         return Vocab(list(self.bert_tok.vocab.keys()))
 
+class FastAIBertTokenizer(BaseTokenizer): 
+    """Wrapper around BertTokenizer to be compatible with fast.ai"""
+    def __init__(self, tokenizer: BertTokenizer, max_seq_len: int=128, **kwargs): 
+         self._pretrained_tokenizer = tokenizer 
+         self.max_seq_len = max_seq_len 
+    def __call__(self, *args, **kwargs): 
+         return self 
+    def tokenizer(self, t:str) -> List[str]: 
+        """Limits the maximum sequence length""" 
+        return ["[CLS]"] + self._pretrained_tokenizer.tokenize(t)[:self.max_seq_len - 2] + ["[SEP]"]
+
 class BertLearner(Learner):
 
     # https://github.com/huggingface/pytorch-pretrained-BERT/issues/95
-    def unfreeze_bert(self)->None:
+    def unfreeze_all_layers(self)->None:
         for name, param in self.model.named_parameters():
             param.requires_grad = True
             
@@ -58,11 +64,11 @@ class BertLearner(Learner):
             else:
                 param.requires_grad = True
                 
-    def freeze_all_bert_layers(self):
+    def freeze_all_layers(self):
         for name, param in self.model.bert.named_parameters():
             param.requires_grad = False
             
-    def print_trianable_layers(self):
+    def print_trainable_layers(self):
         for name, param in self.model.named_parameters():
             if param.requires_grad: print(name)
             
@@ -80,18 +86,20 @@ class BertLearner(Learner):
             preds = [p[reverse_sampler] for p in preds] 
         return(preds)
 
-    def get_pred_values(self, ds_type:DatasetType=DatasetType.Valid, with_loss:bool=False, n_batch:Optional[int]=None, pbar:Optional[PBar]=None,
+    def get_predictions(self, ds_type:DatasetType=DatasetType.Valid, with_loss:bool=False, n_batch:Optional[int]=None, pbar:Optional[PBar]=None,
               ordered:bool=True):
-        preds, true_labels =  self.get_ordered_preds(ds_type=ds_type, ordered=ordered)
-        acc = accuracy(preds, true_labels)
+        preds, true_labels =  self.get_ordered_preds(ds_type=ds_type, with_loss=with_loss, n_batch=n_batch, pbar=pbar, ordered=ordered)
         pred_values = np.argmax(preds, axis=1)
+        return preds, pred_values, true_labels
+    
+    def print_metrics(self, preds, pred_values, true_labels):
+        acc = accuracy(preds, true_labels)
         f1s = f1_score(true_labels, pred_values)
         print(f"Accuracy={acc}, f1_score={f1s}")
-        return pred_values
-    
+
     def load_best_model(self, model_name="bestmodel"):
         try:
-            self.load(model_name)
+            self.load(model_name, purge=False)
             print(f"Loading {model_name}")
         except:
             print(f"Failed to load {model_name}")
