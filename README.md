@@ -1,5 +1,7 @@
 # fastai-bert-finetuning
 
+###  Python >= 3.6
+
 ### Overview:
 
 We will finetune pre-trained BERT model on The Microsoft Research Paraphrase Corpus (MRPC). MRPC is a paraphrase identification dataset, where systems aim to identify if two sentences are paraphrases of each other.
