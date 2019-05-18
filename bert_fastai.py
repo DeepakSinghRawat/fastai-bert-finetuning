@@ -9,7 +9,6 @@ from pytorch_pretrained_bert.optimization import BertAdam, WarmupLinearSchedule
 
 """
 Code adapted from: https://github.com/keitakurita/Practical_NLP_in_PyTorch/blob/master/fastai/bert_with_fastai.ipynb
-Thanks to Keita Kurita for this excellent work. You can read more on: http://mlexplained.com/2019/05/13/a-tutorial-to-fine-tuning-bert-with-fast-ai/ 
 """
 
 """FastAI has its own conventions for handling tokenization, so we'll need to wrap the tokenizer within a different class. 
