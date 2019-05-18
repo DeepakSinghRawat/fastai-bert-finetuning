@@ -8,12 +8,25 @@ We will finetune pre-trained BERT model on The Microsoft Research Paraphrase Cor
 
 1. Clone the repo and install dependencies by running:
 
-```pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
 
 2. Execute "Finetuning Bert on MRPC Corpus using FastAI" notebook
 
 ### Results:
 
-We achieve high accuracy of ~0.83 and f1 score of ~0.88 by running for only 3 epochs.
+We achieve high accuracy of ~0.82 and f1 score of ~0.87 by running for only 3 epochs.
 
 Thanks to [Keita Kurita](https://github.com/keitakurita) for this excellent starter: [A Tutorial to Fine-Tuning BERT with Fast AI](http://mlexplained.com/2019/05/13/a-tutorial-to-fine-tuning-bert-with-fast-ai/)
+
+### Mask Language Model Demo
+
+We can load a BERT model with the masked language modeling head and predict masked words.
+
+```
+bert_token_model = bert_helper.BertMaskedLM()
+text = '[CLS] Steve Jobs founded [MASK] . [SEP][CLS] Microsoft makes [MASK] . [SEP]'
+preds = bert_token_model.predict_tokens(text)
+for p in preds: print(p)
+```

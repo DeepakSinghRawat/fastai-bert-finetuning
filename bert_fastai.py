@@ -74,8 +74,9 @@ class BertLearner(Learner):
     def get_ordered_preds(self, ds_type:DatasetType=DatasetType.Valid, with_loss:bool=False, n_batch:Optional[int]=None, pbar:Optional[PBar]=None,
               ordered:bool=True) -> List[Tensor]:
         "Return predictions and targets on the valid, train, or test set, depending on `ds_type`."
-        #FIXME: check if this is required
+        #FIXME: check if this is required. reset is done in fastai. implement if require for BERT also
         #learner.model.reset()
+        self.model.eval()
         if ordered: np.random.seed(42)
         preds = self.get_preds(ds_type=ds_type, with_loss=with_loss, n_batch=n_batch, pbar=pbar)
         if ordered and hasattr(self.dl(ds_type), 'sampler'):
